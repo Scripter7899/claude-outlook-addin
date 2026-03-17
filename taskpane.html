@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Claude for Outlook</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  --clay:#DA7756;--clay-d:#C15F3C;--clay-l:#EFA882;--clay-f:#FDF1EC;
+  --pampas:#F4F3EE;--cloudy:#B1ADA1;
+  --warm-dk:#2C2825;--warm-md:#5C5650;--warm-lt:#8A847D;
+  --surface:#FFFFFF;--s2:#F9F8F5;
+  --border:#E5E2DA;--border2:#D0CBC2;
+  --shadow:rgba(44,40,37,.08);
+  --r:6px;--r2:10px;
+}
+body{font-family:'Inter',sans-serif;background:var(--pampas);color:var(--warm-dk);font-size:13px;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;height:100vh;overflow:hidden}
+.screen.active{display:flex}
+
+/* SETUP */
+#setup{background:var(--surface);overflow-y:auto;height:100vh}
+.hero{background:var(--clay);padding:26px 20px 20px;display:flex;align-items:flex-start;gap:12px}
+.hero-mark{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff;flex-shrink:0}
+.hero h1{font-size:17px;font-weight:600;color:#fff;margin-bottom:4px}
+.hero p{font-size:12px;color:rgba(255,255,255,.78);line-height:1.55}
+.setup-body{padding:16px;display:flex;flex-direction:column;gap:13px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;box-shadow:0 1px 3px var(--shadow)}
+.card-ttl{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--clay-d);text-transform:uppercase;margin-bottom:10px}
+.mode-tabs{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:13px}
+.mtab{flex:1;padding:9px 6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;background:var(--s2);color:var(--warm-lt);transition:all .15s;border:none}
+.mtab:first-child{border-right:1px solid var(--border)}
+.mtab.on{background:var(--clay);color:#fff}
+.mpanel{display:none}.mpanel.on{display:block}
+.field{margin-bottom:11px}.field:last-child{margin-bottom:0}
+.flbl{font-size:11px;font-weight:500;color:var(--warm-md);margin-bottom:5px}
+input{width:100%;padding:9px 11px;background:var(--pampas);border:1px solid var(--border);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:12px;color:var(--warm-dk);outline:none;transition:border-color .15s,background .15s}
+input:focus{border-color:var(--clay);background:var(--surface)}
+input::placeholder{color:var(--cloudy)}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;border-radius:var(--r);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:none;width:100%;letter-spacing:.01em}
+.btn-p{background:var(--clay);color:#fff}.btn-p:hover{background:var(--clay-d)}.btn-p:active{transform:scale(.98)}
+.btn-g{background:transparent;color:var(--warm-md);border:1px solid var(--border)}.btn-g:hover{border-color:var(--border2);color:var(--warm-dk)}
+.btn-d{background:transparent;color:#c0392b;border:1px solid #f0c0bb}.btn-d:hover{background:#fdf3f2}
+.steps{list-style:none;display:flex;flex-direction:column;gap:8px}
+.steps li{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--warm-md);line-height:1.55}
+.sn{min-width:20px;height:20px;border-radius:50%;background:var(--clay-f);border:1px solid var(--clay-l);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--clay-d);flex-shrink:0;margin-top:1px}
+
+/* MAIN */
+#main{background:var(--pampas);position:relative}
+.hdr{background:var(--clay);padding:10px 14px;display:flex;align-items:center;gap:9px;flex-shrink:0}
+.hdr-mark{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.hdr-name{font-size:13px;font-weight:600;color:#fff;flex:1}
+.hdr-badge{font-size:9px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.2);color:rgba(255,255,255,.9)}
+.hdr-btn{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.15);border:none;color:rgba(255,255,255,.85);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .15s}
+.hdr-btn:hover{background:rgba(255,255,255,.25)}
+
+.ribbon{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 14px;flex-shrink:0;cursor:pointer}
+.rib-top{display:flex;align-items:center;gap:7px}
+.rib-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--clay-f);color:var(--clay-d);border:1px solid rgba(218,119,86,.2);letter-spacing:.04em;flex-shrink:0}
+.rib-subj{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.rib-chev{font-size:10px;color:var(--cloudy);transition:transform .2s;flex-shrink:0}
+.rib-chev.o{transform:rotate(180deg)}
+.rib-detail{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.rib-detail.o{max-height:100px}
+.rib-detail-in{padding:8px 0 2px;margin-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--warm-md);line-height:1.7}
+
+.nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.ntab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:500;color:var(--warm-lt);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.ntab.on{color:var(--clay-d);border-bottom-color:var(--clay)}
+.ntab:hover:not(.on){color:var(--warm-md)}
+
+.panels{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.panel.on{display:flex}
+
+/* CHAT */
+.qrow{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 12px;flex-shrink:0}
+.qlbl{font-size:9px;font-weight:600;letter-spacing:.07em;color:var(--cloudy);text-transform:uppercase;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:10px;font-weight:500;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--s2);color:var(--warm-md);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--clay);color:var(--clay-d);background:var(--clay-f)}
+
+.cscroll{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:11px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cscroll::-webkit-scrollbar{width:3px}
+.cscroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:24px 20px;gap:8px}
+.welcome-icon{font-size:30px}
+.welcome h2{font-size:15px;font-weight:600}
+.welcome p{font-size:12px;color:var(--warm-lt);line-height:1.7;max-width:210px}
+
+.msg{display:flex;flex-direction:column;gap:3px;max-width:93%;animation:rise .18s ease}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.u{align-self:flex-end;align-items:flex-end}
+.msg.a{align-self:flex-start;align-items:flex-start}
+.who{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase}
+.msg.u .who{color:var(--warm-lt)}
+.msg.a .who{color:var(--clay-d)}
+.bub{padding:9px 12px;border-radius:var(--r2);font-size:12px;line-height:1.7}
+.msg.u .bub{background:var(--warm-dk);color:#fff;border-bottom-right-radius:3px}
+.msg.a .bub{background:var(--surface);border:1px solid var(--border);color:var(--warm-dk);border-bottom-left-radius:3px;box-shadow:0 1px 3px var(--shadow)}
+.bub b{font-weight:600}
+.bub ul{padding-left:16px;margin-top:4px}
+.bub li{margin-bottom:2px}
+.macts{display:flex;gap:5px;margin-top:4px}
+.mact{font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);background:var(--s2);color:var(--warm-lt);cursor:pointer;transition:all .15s}
+.mact:hover{border-color:var(--clay);color:var(--clay-d)}
+.think{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);border-bottom-left-radius:3px;padding:9px 14px;box-shadow:0 1px 3px var(--shadow)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--clay);margin:0 2px;animation:bob 1.1s infinite ease-in-out}
+.dot:nth-child(2){animation-delay:.18s}.dot:nth-child(3){animation-delay:.36s}
+@keyframes bob{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-4px);opacity:1}}
+.errbub{background:#fdf3f2;border:1px solid #f0c0bb;border-radius:var(--r);padding:9px 12px;font-size:12px;color:#c0392b;line-height:1.6}
+
+.compose{padding:10px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.compose-row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;padding:8px 11px;background:var(--pampas);border:1px solid var(--border);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:12px;color:var(--warm-dk);resize:none;outline:none;line-height:1.5;max-height:80px;overflow-y:auto;transition:border-color .15s,background .15s}
+textarea:focus{border-color:var(--clay);background:var(--surface)}
+textarea::placeholder{color:var(--cloudy)}
+.snd{width:34px;height:34px;border-radius:8px;background:var(--clay);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s,transform .1s;flex-shrink:0}
+.snd:hover{background:var(--clay-d)}.snd:active{transform:scale(.92)}.snd:disabled{background:var(--border2);cursor:not-allowed}
+.chint{font-size:9px;color:var(--cloudy);margin-top:5px;letter-spacing:.02em}
+
+/* TOOLS */
+.tscroll{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.tscroll::-webkit-scrollbar{width:3px}
+.tool{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:12px 13px;cursor:pointer;transition:all .15s}
+.tool:hover{border-color:var(--clay);box-shadow:0 2px 8px var(--shadow)}
+.tool-top{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.tool-icon{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--pampas);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tool-name{font-size:13px;font-weight:600}
+.tool-desc{font-size:11px;color:var(--warm-lt);line-height:1.55}
+.tool-badge{display:inline-block;margin-top:7px;font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.04em;background:var(--clay-f);color:var(--clay-d);border:1px solid rgba(218,119,86,.2)}
+.tool-badge.green{background:#edf7f4;color:#1a7a55;border:1px solid #b0ddd0}
+
+/* TEMPLATES */
+.tplscroll{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.tplscroll::-webkit-scrollbar{width:3px}
+.tgl{font-size:10px;font-weight:600;letter-spacing:.07em;color:var(--cloudy);text-transform:uppercase;padding:4px 2px 2px}
+.tpl{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:11px 13px;cursor:pointer;transition:all .15s}
+.tpl:hover{border-color:var(--clay);box-shadow:0 2px 8px var(--shadow)}
+.tpl-name{font-size:12px;font-weight:600;margin-bottom:3px}
+.tpl-desc{font-size:11px;color:var(--warm-lt);line-height:1.55}
+.tpl-tag{display:inline-block;margin-top:6px;font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.04em}
+.tr{background:var(--clay-f);color:var(--clay-d);border:1px solid rgba(218,119,86,.2)}
+.ta{background:#edf7f4;color:#1a7a55;border:1px solid #b0ddd0}
+.te{background:#f0f0fb;color:#4040c0;border:1px solid #c0c0ee}
+
+/* HISTORY */
+.hscroll{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.hemp{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:6px;color:var(--cloudy);font-size:12px;padding:20px;text-align:center}
+.hitem{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:10px 13px;cursor:pointer;transition:all .15s}
+.hitem:hover{border-color:var(--border2)}
+.hdate{font-size:10px;color:var(--cloudy);margin-bottom:3px}
+.hsubj{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.hprev{font-size:11px;color:var(--warm-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* OVERLAYS */
+.overlay{position:absolute;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--pampas);display:none;flex-direction:column;overflow-y:auto}
+.overlay.o{display:flex}
+.ovhdr{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ovhdr h2{font-size:14px;font-weight:600;flex:1}
+.ovbody{padding:14px;display:flex;flex-direction:column;gap:12px}
+
+/* RESULT */
+.result{position:absolute;top:0;left:0;right:0;bottom:0;z-index:150;background:var(--pampas);display:none;flex-direction:column}
+.result.o{display:flex}
+.reshdr{background:var(--clay);padding:11px 14px;display:flex;align-items:center;gap:9px;flex-shrink:0}
+.reshdr h3{font-size:13px;font-weight:600;color:#fff;flex:1}
+.resscroll{flex:1;overflow-y:auto;padding:14px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.resbox{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;font-size:12px;line-height:1.8;color:var(--warm-dk);box-shadow:0 1px 3px var(--shadow);white-space:pre-wrap}
+.resbox b{font-weight:600}
+.resacts{padding:12px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.resacts .btn{flex:1;padding:9px}
+
+/* TOGGLE */
+.togrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.togrow:last-child{border-bottom:none}
+.togtxt{flex:1}
+.toglbl{font-size:12px;font-weight:500}
+.togsub{font-size:10px;color:var(--warm-lt);margin-top:1px}
+.tog{position:relative;width:36px;height:20px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.togtr{position:absolute;inset:0;background:var(--border2);border-radius:10px;cursor:pointer;transition:background .2s}
+.togtr::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tog input:checked~.togtr{background:var(--clay)}
+.tog input:checked~.togtr::after{transform:translateX(16px)}
+
+.toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--warm-dk);color:#fff;border-radius:8px;padding:7px 16px;font-size:11px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:300;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup" class="screen active">
+  <div class="hero">
+    <div class="hero-mark">✦</div>
+    <div>
+      <h1>Claude for Outlook</h1>
+      <p>Your intelligent email assistant. More powerful than the built-in.</p>
+    </div>
+  </div>
+  <div class="setup-body">
+    <div class="card">
+      <div class="card-ttl">Connection mode</div>
+      <div class="mode-tabs">
+        <button class="mtab on" id="mt0" onclick="setMode('direct')">⚡ Direct API</button>
+        <button class="mtab" id="mt1" onclick="setMode('onprem')">🏢 On-Prem Gateway</button>
+      </div>
+      <div class="mpanel on" id="mp0">
+        <p style="font-size:12px;color:var(--warm-lt);margin-bottom:12px;line-height:1.6">Calls Anthropic directly. Fastest setup, no internal server needed.</p>
+        <div class="field"><div class="flbl">Anthropic API key</div><input type="password" id="dk" placeholder="sk-ant-api03-…"/></div>
+      </div>
+      <div class="mpanel" id="mp1">
+        <p style="font-size:12px;color:var(--warm-lt);margin-bottom:12px;line-height:1.6">Routes through your internal LiteLLM gateway. Claude can access your CRM, HR system, knowledge base, and internal data.</p>
+        <div class="field"><div class="flbl">Gateway URL</div><input type="url" id="ou" placeholder="https://ai-gateway.yourcompany.com"/></div>
+        <div class="field"><div class="flbl">Gateway API key</div><input type="password" id="ok" placeholder="your-internal-key"/></div>
+      </div>
+      <button class="btn btn-p" onclick="connect()">Connect to Claude →</button>
+    </div>
+    <div class="card">
+      <div class="card-ttl">Get an API key</div>
+      <ul class="steps">
+        <li><span class="sn">1</span>Go to console.anthropic.com</li>
+        <li><span class="sn">2</span>Sign in → API Keys → Create Key</li>
+        <li><span class="sn">3</span>Copy the key (starts with sk-ant-)</li>
+        <li><span class="sn">4</span>Paste it above and click Connect</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main" class="screen">
+  <div class="hdr">
+    <div class="hdr-mark">✦</div>
+    <div class="hdr-name">Claude</div>
+    <div class="hdr-badge" id="modeBadge">DIRECT</div>
+    <button class="hdr-btn" title="New chat" onclick="newChat()">✕</button>
+    <button class="hdr-btn" title="Settings" onclick="openSettings()">⚙</button>
+  </div>
+
+  <div class="ribbon" onclick="toggleRib()">
+    <div class="rib-top">
+      <span class="rib-badge">EMAIL</span>
+      <span class="rib-subj" id="ribSubj">Loading email…</span>
+      <span class="rib-chev" id="ribChev">▾</span>
+    </div>
+    <div class="rib-detail" id="ribDet">
+      <div class="rib-detail-in" id="ribDetIn"></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="ntab on" onclick="tab('chat')">Chat</div>
+    <div class="ntab" onclick="tab('tools')">Smart Tools</div>
+    <div class="ntab" onclick="tab('tpl')">Templates</div>
+    <div class="ntab" onclick="tab('hist')">History</div>
+  </div>
+
+  <div class="panels">
+
+    <!-- CHAT -->
+    <div class="panel on" id="p-chat">
+      <div class="qrow">
+        <div class="qlbl">Quick actions</div>
+        <div class="chips">
+          <span class="chip" onclick="qa('Give me a clear bullet-point summary of this email.')">📋 Summarize</span>
+          <span class="chip" onclick="qa('Draft a professional, concise reply to this email. Match the sender\'s tone.')">↩ Draft reply</span>
+          <span class="chip" onclick="qa('List every action item, task, and deadline. Format as a checklist.')">✅ Action items</span>
+          <span class="chip" onclick="qa('Analyze the tone and urgency. Should I reply today? What priority is this?')">🎯 Priority</span>
+          <span class="chip" onclick="qa('Who sent this and what do they actually want from me? Read between the lines.')">👤 Sender intent</span>
+          <span class="chip" onclick="qa('Translate this email to English, preserving the exact tone and meaning.')">🌐 Translate</span>
+        </div>
+      </div>
+      <div class="cscroll" id="chatScroll">
+        <div class="welcome" id="welcomeEl">
+          <div class="welcome-icon">✦</div>
+          <h2>Hello, I'm Claude</h2>
+          <p>Ask me anything about this email, or use a quick action above.</p>
+        </div>
+      </div>
+      <div class="compose">
+        <div class="compose-row">
+          <textarea id="inp" placeholder="Ask Claude about this email…" rows="1" onkeydown="onKey(event)" oninput="rsz(this)"></textarea>
+          <button class="snd" id="sendBtn" onclick="send()">↑</button>
+        </div>
+        <div class="chint">Enter to send · Shift+Enter for new line</div>
+      </div>
+    </div>
+
+    <!-- SMART TOOLS -->
+    <div class="panel" id="p-tools">
+      <div class="tscroll">
+        <div class="tool" onclick="runTool('priority')">
+          <div class="tool-top"><div class="tool-icon">🔥</div><div class="tool-name">Priority score &amp; triage</div></div>
+          <div class="tool-desc">Get a 1–10 priority rating, reason, recommended response time, and exact next action.</div>
+          <span class="tool-badge">Inbox triage</span>
+        </div>
+        <div class="tool" onclick="openCoach()">
+          <div class="tool-top"><div class="tool-icon">✍️</div><div class="tool-name">Coaching — improve my draft</div></div>
+          <div class="tool-desc">Paste your draft reply. Claude critiques tone, clarity, and professionalism — then rewrites it.</div>
+          <span class="tool-badge green">Better than Copilot coaching</span>
+        </div>
+        <div class="tool" onclick="runTool('meeting')">
+          <div class="tool-top"><div class="tool-icon">📅</div><div class="tool-name">Meeting prep brief</div></div>
+          <div class="tool-desc">Extract the meeting context, build an agenda, identify attendees' goals and what to prepare.</div>
+          <span class="tool-badge">Calendar ready</span>
+        </div>
+        <div class="tool" onclick="runTool('sentiment')">
+          <div class="tool-top"><div class="tool-icon">🧠</div><div class="tool-name">Sentiment &amp; subtext analysis</div></div>
+          <div class="tool-desc">Detect frustration, urgency, politics, or hidden concerns not stated directly in the email.</div>
+          <span class="tool-badge green">Deep read</span>
+        </div>
+        <div class="tool" onclick="runTool('executive')">
+          <div class="tool-top"><div class="tool-icon">🏢</div><div class="tool-name">Executive briefing</div></div>
+          <div class="tool-desc">Situation, ask, risk, and recommendation in 5 lines. Forward to leadership instantly.</div>
+          <span class="tool-badge">For leadership</span>
+        </div>
+        <div class="tool" onclick="runTool('legal')">
+          <div class="tool-top"><div class="tool-icon">⚖️</div><div class="tool-name">Legal &amp; commitment flags</div></div>
+          <div class="tool-desc">Find obligations, commitments, deadlines, and language that may need legal review.</div>
+          <span class="tool-badge">Risk check</span>
+        </div>
+        <div class="tool" onclick="runTool('thread')">
+          <div class="tool-top"><div class="tool-icon">🧵</div><div class="tool-name">Thread catch-up</div></div>
+          <div class="tool-desc">What's agreed, what's open, who owes what — extracted from the full thread context.</div>
+          <span class="tool-badge">Thread digest</span>
+        </div>
+        <div class="tool" onclick="openRewrite()">
+          <div class="tool-top"><div class="tool-icon">🔄</div><div class="tool-name">Tone rewriter</div></div>
+          <div class="tool-desc">Rewrite this email in a different tone — more formal, warmer, more direct, or executive-ready.</div>
+          <span class="tool-badge">Tone control</span>
+        </div>
+        <div class="tool" onclick="runTool('reply_options')">
+          <div class="tool-top"><div class="tool-icon">💡</div><div class="tool-name">3 reply options</div></div>
+          <div class="tool-desc">Get three distinct reply drafts — formal, direct, and warm — so you pick the best fit.</div>
+          <span class="tool-badge green">Multi-draft</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPLATES -->
+    <div class="panel" id="p-tpl">
+      <div class="tplscroll">
+        <div class="tgl">Replies</div>
+        <div class="tpl" onclick="useTpl('Write a polite, professional rejection to this email. Decline clearly, give a brief reason, but leave the door open for future opportunities.')"><div class="tpl-name">Formal rejection</div><div class="tpl-desc">Decline with grace.</div><span class="tpl-tag tr">reply</span></div>
+        <div class="tpl" onclick="useTpl('Draft a follow-up. Reference key points from this email and politely ask for a status update. Do not be pushy.')"><div class="tpl-name">Follow-up nudge</div><div class="tpl-desc">Chase a response without pressure.</div><span class="tpl-tag tr">reply</span></div>
+        <div class="tpl" onclick="useTpl('Draft an acknowledgement reply. Confirm receipt, say you\'re reviewing it, give a realistic timeframe. Keep it to 2–3 sentences.')"><div class="tpl-name">Acknowledgement</div><div class="tpl-desc">Buy time while sounding responsive.</div><span class="tpl-tag tr">reply</span></div>
+        <div class="tpl" onclick="useTpl('Draft a reply proposing three 30-minute meeting slots next week. End with asking if any of those work or if they prefer alternatives.')"><div class="tpl-name">Schedule a meeting</div><div class="tpl-desc">Propose times, cut the back-and-forth.</div><span class="tpl-tag tr">reply</span></div>
+        <div class="tpl" onclick="useTpl('Draft a polite but firm reply pushing back on the request in this email. Explain why it\'s not feasible and suggest an alternative.')"><div class="tpl-name">Push back (diplomatically)</div><div class="tpl-desc">Say no — or not yet — without offending.</div><span class="tpl-tag tr">reply</span></div>
+        <div class="tgl">Analysis</div>
+        <div class="tpl" onclick="useTpl('Extract every named entity: people, companies, project names, dates, dollar amounts, and deadlines. Format as structured lists.')"><div class="tpl-name">Extract entities</div><div class="tpl-desc">People, companies, dates, amounts.</div><span class="tpl-tag ta">analysis</span></div>
+        <div class="tpl" onclick="useTpl('Thread digest: 1) Decisions made, 2) Open questions, 3) Who owes what by when. Be specific.')"><div class="tpl-name">Thread digest</div><div class="tpl-desc">Open items, decisions, owners.</div><span class="tpl-tag ta">analysis</span></div>
+        <div class="tpl" onclick="useTpl('List every risk, red flag, or concern. Be specific about what could go wrong and why.')"><div class="tpl-name">Risk analysis</div><div class="tpl-desc">What could go wrong and why.</div><span class="tpl-tag ta">analysis</span></div>
+        <div class="tpl" onclick="useTpl('Compare what was originally requested vs what was actually delivered or agreed in this thread. Highlight any gaps or scope creep.')"><div class="tpl-name">Scope check</div><div class="tpl-desc">Spot scope creep or gaps in delivery.</div><span class="tpl-tag ta">analysis</span></div>
+        <div class="tgl">Extraction</div>
+        <div class="tpl" onclick="useTpl('Produce a 5-line executive summary: situation, ask, risk, recommendation, timeline.')"><div class="tpl-name">Executive summary</div><div class="tpl-desc">Forward-ready brief for leadership.</div><span class="tpl-tag te">extract</span></div>
+        <div class="tpl" onclick="useTpl('Turn this email into a structured FAQ: list the questions (explicit and implied) and write a clear answer to each.')"><div class="tpl-name">Email → FAQ</div><div class="tpl-desc">Turn complex emails into clear Q&A.</div><span class="tpl-tag te">extract</span></div>
+        <div class="tpl" onclick="useTpl('List all action items as a task board: | Task | Owner | Deadline | Priority |. Say Unknown for any missing info.')"><div class="tpl-name">Task board export</div><div class="tpl-desc">Jira/Asana-ready task list.</div><span class="tpl-tag te">extract</span></div>
+        <div class="tpl" onclick="useTpl('Identify every question being asked in this email — explicit and implied — and list them clearly.')"><div class="tpl-name">Questions asked</div><div class="tpl-desc">Never miss an unanswered question.</div><span class="tpl-tag te">extract</span></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel" id="p-hist">
+      <div class="hscroll" id="histScroll">
+        <div class="hemp" id="histEmpty"><div style="font-size:24px">🕓</div><div>No conversations yet</div></div>
+      </div>
+    </div>
+
+  </div><!-- /panels -->
+
+  <!-- RESULT OVERLAY -->
+  <div class="result" id="resultPanel">
+    <div class="reshdr">
+      <button class="hdr-btn" onclick="closeResult()">←</button>
+      <h3 id="resTitle">Result</h3>
+    </div>
+    <div class="resscroll"><div class="resbox" id="resBox"></div></div>
+    <div class="resacts">
+      <button class="btn btn-g" onclick="cpyResult()">⎘ Copy</button>
+      <button class="btn btn-p" onclick="continueChat()">Continue in chat →</button>
+    </div>
+  </div>
+
+  <!-- COACH OVERLAY -->
+  <div class="overlay" id="coachOv">
+    <div class="ovhdr">
+      <button class="btn btn-g" style="width:auto;padding:6px 12px;font-size:11px" onclick="closeCoach()">← Back</button>
+      <h2>Coaching — improve my draft</h2>
+    </div>
+    <div class="ovbody">
+      <div class="card">
+        <div class="card-ttl">Paste your draft reply</div>
+        <textarea id="coachDraft" placeholder="Paste your draft reply here…" rows="8" style="width:100%;margin-top:4px;max-height:200px;background:var(--pampas)"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Focus (optional)</div>
+        <input type="text" id="coachFocus" placeholder="e.g. Make it warmer, more concise, executive tone…"/>
+      </div>
+      <button class="btn btn-p" onclick="submitCoach()">Analyse &amp; Improve →</button>
+    </div>
+  </div>
+
+  <!-- REWRITE OVERLAY -->
+  <div class="overlay" id="rewriteOv">
+    <div class="ovhdr">
+      <button class="btn btn-g" style="width:auto;padding:6px 12px;font-size:11px" onclick="closeRewrite()">← Back</button>
+      <h2>Tone rewriter</h2>
+    </div>
+    <div class="ovbody">
+      <div class="card">
+        <div class="card-ttl">Choose target tone</div>
+        <div class="chips" style="gap:7px;flex-wrap:wrap">
+          <span class="chip" onclick="setTone(this,'More formal')">More formal</span>
+          <span class="chip" onclick="setTone(this,'Warmer and friendlier')">Warmer</span>
+          <span class="chip" onclick="setTone(this,'More direct and concise')">More direct</span>
+          <span class="chip" onclick="setTone(this,'More diplomatic')">More diplomatic</span>
+          <span class="chip" onclick="setTone(this,'Executive-ready')">Executive-ready</span>
+          <span class="chip" onclick="setTone(this,'Simpler language, easier to understand')">Simpler</span>
+        </div>
+        <input type="text" id="rwTone" placeholder="Or describe your own tone…" style="margin-top:10px"/>
+      </div>
+      <button class="btn btn-p" onclick="submitRewrite()">Rewrite →</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS OVERLAY -->
+  <div class="overlay" id="settingsOv">
+    <div class="ovhdr">
+      <button class="btn btn-g" style="width:auto;padding:6px 12px;font-size:11px" onclick="closeSettings()">← Back</button>
+      <h2>Settings</h2>
+    </div>
+    <div class="ovbody">
+      <div class="card">
+        <div class="card-ttl">Connection</div>
+        <p style="font-size:12px;color:var(--warm-md);margin-bottom:10px">Mode: <strong id="settModeTxt">—</strong></p>
+        <button class="btn btn-d" onclick="disconnect()">Disconnect &amp; reconfigure</button>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Behaviour</div>
+        <div class="togrow">
+          <div class="togtxt"><div class="toglbl">Auto-load email on open</div><div class="togsub">Read current email when panel opens</div></div>
+          <label class="tog"><input type="checkbox" id="tg0" checked onchange="pref('autoload',this.checked)"><span class="togtr"></span></label>
+        </div>
+        <div class="togrow">
+          <div class="togtxt"><div class="toglbl">Save conversation history</div><div class="togsub">Store last 30 chats locally in browser</div></div>
+          <label class="tog"><input type="checkbox" id="tg1" checked onchange="pref('history',this.checked)"><span class="togtr"></span></label>
+        </div>
+        <div class="togrow">
+          <div class="togtxt"><div class="toglbl">Include sender details</div><div class="togsub">Give Claude sender name &amp; email address</div></div>
+          <label class="tog"><input type="checkbox" id="tg2" checked onchange="pref('sender',this.checked)"><span class="togtr"></span></label>
+        </div>
+        <div class="togrow">
+          <div class="togtxt"><div class="toglbl">Render markdown formatting</div><div class="togsub">Show bold text and bullet points</div></div>
+          <label class="tog"><input type="checkbox" id="tg3" checked onchange="pref('md',this.checked)"><span class="togtr"></span></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Data &amp; privacy</div>
+        <p style="font-size:11px;color:var(--warm-lt);line-height:1.7;margin-bottom:10px">Your API key and settings are stored only in your browser's localStorage. Email content is sent to Claude only when you actively ask a question.</p>
+        <button class="btn btn-g" onclick="clearHist()">Clear conversation history</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+let cfg={},emailCtx='',emailMeta={subject:'',from:'',date:''},hist=[],conv=[],isLoad=false,ribOpen=false;
+let prefs={autoload:true,history:true,sender:true,md:true};
+let lastRes='';
+
+Office.onReady(async()=>{
+  loadPrefs();
+  try{
+    const s=localStorage.getItem('cfg3');
+    if(s){ cfg=JSON.parse(s); loadHist(); if(prefs.autoload)await loadEmail(); showMain(); }
+  }catch(e){}
+});
+
+let sMode='direct';
+function setMode(m){
+  sMode=m;
+  document.getElementById('mt0').classList.toggle('on',m==='direct');
+  document.getElementById('mt1').classList.toggle('on',m==='onprem');
+  document.getElementById('mp0').classList.toggle('on',m==='direct');
+  document.getElementById('mp1').classList.toggle('on',m==='onprem');
+}
+
+function connect(){
+  if(sMode==='direct'){
+    const k=document.getElementById('dk').value.trim();
+    if(!k.startsWith('sk-ant'))return toast('Enter a valid key (starts with sk-ant-)');
+    cfg={mode:'direct',key:k};
+  }else{
+    const u=document.getElementById('ou').value.trim(),k=document.getElementById('ok').value.trim();
+    if(!u.startsWith('http'))return toast('Enter a valid gateway URL');
+    if(!k)return toast('Enter your gateway key');
+    cfg={mode:'onprem',url:u,key:k};
+  }
+  localStorage.setItem('cfg3',JSON.stringify(cfg));
+  showMain(); if(prefs.autoload)loadEmail();
+}
+
+function showMain(){
+  document.getElementById('setup').classList.remove('active');
+  document.getElementById('main').classList.add('active');
+  document.getElementById('modeBadge').textContent=cfg.mode==='onprem'?'ON-PREM':'DIRECT';
+  const s=document.getElementById('settModeTxt');
+  if(s)s.textContent=cfg.mode==='onprem'?'On-Prem ('+cfg.url+')':'Direct (Anthropic API)';
+}
+
+function disconnect(){
+  if(!confirm('Disconnect and reconfigure?'))return;
+  localStorage.removeItem('cfg3'); cfg={};
+  closeSettings();
+  document.getElementById('main').classList.remove('active');
+  document.getElementById('setup').classList.add('active');
+}
+
+async function loadEmail(){
+  try{
+    const item=Office.context.mailbox.item;
+    emailMeta.subject=item.subject||'(no subject)';
+    emailMeta.from=item.from?item.from.displayName+' <'+item.from.emailAddress+'>':'Unknown';
+    emailMeta.date=item.dateTimeCreated?new Date(item.dateTimeCreated).toLocaleString():'';
+    const body=await new Promise(r=>item.body.getAsync(Office.CoercionType.Text,res=>r(res.status===Office.AsyncResultStatus.Succeeded?res.value:'')));
+    document.getElementById('ribSubj').textContent=emailMeta.subject;
+    document.getElementById('ribDetIn').innerHTML='<b>From:</b> '+emailMeta.from+'<br><b>Date:</b> '+emailMeta.date;
+    let ctx='EMAIL:\nSubject: '+emailMeta.subject+'\n';
+    if(prefs.sender)ctx+='From: '+emailMeta.from+'\nDate: '+emailMeta.date+'\n';
+    ctx+='---\n'+body.substring(0,4000)+(body.length>4000?'\n[truncated]':'');
+    emailCtx=ctx;
+  }catch(e){
+    document.getElementById('ribSubj').textContent='Could not read email';
+    emailCtx='(Email context unavailable)';
+  }
+}
+
+function toggleRib(){
+  ribOpen=!ribOpen;
+  document.getElementById('ribDet').classList.toggle('o',ribOpen);
+  document.getElementById('ribChev').classList.toggle('o',ribOpen);
+}
+
+const TABS=['chat','tools','tpl','hist'];
+function tab(t){
+  document.querySelectorAll('.ntab').forEach((el,i)=>el.classList.toggle('on',TABS[i]===t));
+  document.querySelectorAll('.panel').forEach((el,i)=>el.classList.toggle('on',TABS[i]===t));
+  if(t==='hist')renderHist();
+}
+
+function qa(p){document.getElementById('inp').value=p;send();}
+
+function sys(){
+  return `You are Claude, a highly intelligent AI email assistant embedded in Microsoft Outlook. Help the user understand, analyze, draft replies to, and act on their emails.\n\nGuidelines:\n- Be concise and professional\n- Use **bold** and bullet points for lists\n- When drafting replies, make them ready to send\n- For analysis, be specific and actionable\n\n${emailCtx||'(No email loaded)'}`;
+}
+
+async function send(){
+  const inp=document.getElementById('inp');
+  const txt=inp.value.trim();
+  if(!txt||isLoad)return;
+  rmWelcome();
+  addMsg('u',txt); inp.value=''; inp.style.height='auto';
+  conv.push({role:'user',content:txt});
+  const tid=addThink(); setLoad(true);
+  try{
+    const r=await callAPI(conv,sys());
+    rmEl(tid); conv.push({role:'assistant',content:r});
+    addMsg('a',r); saveHist(txt,r);
+  }catch(e){rmEl(tid);addErr(e.message);}
+  finally{setLoad(false);}
+}
+
+const TPROMPTS={
+  priority:`Analyze this email:\n1. **Priority score:** X/10 (one sentence reason)\n2. **Why it matters:** Key reason\n3. **Response time:** Within 1hr / Today / This week / No reply needed\n4. **Next action:** Exactly what I should do right now`,
+  meeting:`This email is about a meeting. Give me:\n1. **Meeting purpose:** What it's about\n2. **Key attendees & their goals:** What each person wants\n3. **Suggested agenda:** 3–5 items in order\n4. **Prep needed:** What to review beforehand\n5. **Smart questions to ask:** 2–3 good ones`,
+  sentiment:`Deep analysis:\n1. **Surface tone:** What the writer explicitly expresses\n2. **Subtext:** What they may actually feel or mean\n3. **Relationship signals:** Their attitude toward me\n4. **Hidden concerns:** Unspoken issues\n5. **Power dynamics:** Any pressure, escalation, or politics\n6. **How to respond:** The right emotional register`,
+  executive:`5-line executive briefing:\n**Situation:** [one sentence]\n**Ask:** [what is requested of me]\n**Risk if ignored:** [consequence]\n**Recommendation:** [what I should do]\n**Timeline:** [when this needs attention]`,
+  legal:`Legal and commitment review:\n1. **Explicit commitments:** What has been promised\n2. **Implicit obligations:** What is implied\n3. **Deadlines with weight:** Time-bound obligations\n4. **Language to watch:** Phrases carrying legal meaning\n5. **Action:** Do I need legal counsel?`,
+  thread:`Thread analysis:\n1. **The story so far:** What has happened\n2. **Decisions made:** What's agreed or confirmed\n3. **Open questions:** What's still unresolved\n4. **Who owes what:** Outstanding actions and owners\n5. **Blockers:** What's holding things up\n6. **Next step:** My recommended action`,
+  reply_options:`Give me three distinct reply drafts for this email:\n\n**Option 1 — Formal:**\n[formal draft]\n\n**Option 2 — Direct:**\n[direct and concise draft]\n\n**Option 3 — Warm:**\n[friendly and approachable draft]\n\nEach should be ready to send.`,
+};
+
+function runTool(name){
+  const title={priority:'Priority & triage',meeting:'Meeting prep brief',sentiment:'Sentiment analysis',executive:'Executive briefing',legal:'Legal flags',thread:'Thread catch-up',reply_options:'3 Reply options'}[name];
+  showResLoad(title);
+  callAPI([{role:'user',content:TPROMPTS[name]}],sys())
+    .then(r=>{lastRes=r;showRes(r);})
+    .catch(e=>showRes('Error: '+e.message));
+}
+
+function openCoach(){document.getElementById('coachOv').classList.add('o');}
+function closeCoach(){document.getElementById('coachOv').classList.remove('o');}
+function submitCoach(){
+  const d=document.getElementById('coachDraft').value.trim();
+  const f=document.getElementById('coachFocus').value.trim();
+  if(!d)return toast('Paste your draft first');
+  const p=`My draft reply:\n\n---\n${d}\n---\n\nPlease:\n1. **Critique it:** What works and what doesn't — tone, clarity, length, professionalism\n2. **Specific suggestions:** At least 3 concrete improvements\n3. **Improved version:** A polished rewrite${f?'\n\nFocus especially on: '+f:''}`;
+  closeCoach();
+  showResLoad('Coaching result');
+  callAPI([{role:'user',content:p}],sys())
+    .then(r=>{lastRes=r;showRes(r);})
+    .catch(e=>showRes('Error: '+e.message));
+}
+
+function openRewrite(){document.getElementById('rewriteOv').classList.add('o');}
+function closeRewrite(){document.getElementById('rewriteOv').classList.remove('o');}
+let selTone='';
+function setTone(el,t){
+  document.querySelectorAll('#rewriteOv .chip').forEach(c=>{c.style.background='';c.style.borderColor='';c.style.color='';});
+  el.style.background='var(--clay-f)'; el.style.borderColor='var(--clay)'; el.style.color='var(--clay-d)';
+  selTone=t; document.getElementById('rwTone').value=t;
+}
+function submitRewrite(){
+  const t=document.getElementById('rwTone').value.trim()||selTone;
+  if(!t)return toast('Choose or describe a tone');
+  const p=`Rewrite this email in a ${t} tone. Keep the same content and intent, but fully adjust the language, structure, and phrasing. Output only the rewritten email, ready to send.`;
+  closeRewrite();
+  showResLoad('Rewritten email');
+  callAPI([{role:'user',content:p}],sys())
+    .then(r=>{lastRes=r;showRes(r);})
+    .catch(e=>showRes('Error: '+e.message));
+}
+
+function showResLoad(title){
+  document.getElementById('resTitle').textContent=title;
+  document.getElementById('resBox').innerHTML='<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  document.getElementById('resultPanel').classList.add('o');
+}
+function showRes(text){
+  const b=document.getElementById('resBox');
+  if(prefs.md) b.innerHTML=mdHtml(text);
+  else b.textContent=text;
+}
+function closeResult(){document.getElementById('resultPanel').classList.remove('o');}
+function cpyResult(){navigator.clipboard.writeText(lastRes);toast('Copied to clipboard');}
+function continueChat(){
+  closeResult(); tab('chat'); rmWelcome();
+  if(lastRes){conv.push({role:'assistant',content:lastRes});addMsg('a',lastRes);}
+}
+
+function useTpl(p){tab('chat');document.getElementById('inp').value=p;document.getElementById('inp').focus();}
+
+function saveHist(q,a){
+  if(!prefs.history)return;
+  hist.unshift({date:new Date().toLocaleString(),subject:emailMeta.subject,q,a});
+  if(hist.length>30)hist.pop();
+  localStorage.setItem('ch3',JSON.stringify(hist));
+}
+function loadHist(){try{hist=JSON.parse(localStorage.getItem('ch3')||'[]');}catch(e){}}
+function renderHist(){
+  const sc=document.getElementById('histScroll');
+  sc.innerHTML='';
+  if(!hist.length){sc.innerHTML='<div class="hemp"><div style="font-size:24px">🕓</div><div>No conversations yet</div></div>';return;}
+  hist.forEach(h=>{
+    const d=document.createElement('div');d.className='hitem';
+    d.innerHTML='<div class="hdate">'+h.date+'</div><div class="hsubj">'+(h.subject||'(no subject)')+'</div><div class="hprev">'+h.q+'</div>';
+    d.onclick=()=>{tab('chat');rmWelcome();conv.push({role:'user',content:h.q},{role:'assistant',content:h.a});addMsg('u',h.q);addMsg('a',h.a);};
+    sc.appendChild(d);
+  });
+}
+function clearHist(){if(!confirm('Clear all history?'))return;hist=[];localStorage.removeItem('ch3');toast('History cleared');}
+
+async function callAPI(messages,system){
+  const ep=cfg.mode==='onprem'?cfg.url.replace(/\/$/,'')+'/v1/messages':'https://api.anthropic.com/v1/messages';
+  const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,system,messages})});
+  if(!r.ok){const e=await r.json().catch(()=>({error:{message:'HTTP '+r.status}}));throw new Error(e.error?.message||'HTTP '+r.status);}
+  const d=await r.json();return d.content[0].text;
+}
+
+function rmWelcome(){const w=document.getElementById('welcomeEl');if(w)w.remove();}
+function addMsg(role,text){
+  const sc=document.getElementById('chatScroll');
+  const w=document.createElement('div');w.className='msg '+role;
+  const wh=document.createElement('div');wh.className='who';wh.textContent=role==='u'?'You':'Claude';
+  const b=document.createElement('div');b.className='bub';
+  if(role==='a'&&prefs.md)b.innerHTML=mdHtml(text);else b.textContent=text;
+  w.appendChild(wh);w.appendChild(b);
+  if(role==='a'){
+    const ac=document.createElement('div');ac.className='macts';
+    const cp=document.createElement('button');cp.className='mact';cp.textContent='⎘ Copy';
+    cp.onclick=()=>{navigator.clipboard.writeText(text);toast('Copied!');};
+    ac.appendChild(cp);w.appendChild(ac);
+  }
+  sc.appendChild(w);sc.scrollTop=sc.scrollHeight;
+}
+function addThink(){
+  const sc=document.getElementById('chatScroll');const id='t'+Date.now();
+  const d=document.createElement('div');d.className='msg a';d.id=id;
+  d.innerHTML='<div class="who">Claude</div><div class="think"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;return id;
+}
+function addErr(m){const sc=document.getElementById('chatScroll');const d=document.createElement('div');d.className='errbub';d.textContent='⚠ '+m;sc.appendChild(d);sc.scrollTop=sc.scrollHeight;}
+function rmEl(id){const e=document.getElementById(id);if(e)e.remove();}
+function setLoad(v){isLoad=v;document.getElementById('sendBtn').disabled=v;}
+function newChat(){conv=[];const sc=document.getElementById('chatScroll');sc.innerHTML='<div class="welcome" id="welcomeEl"><div class="welcome-icon">✦</div><h2>Hello, I\'m Claude</h2><p>Ask me anything about this email, or use a quick action above.</p></div>';}
+function mdHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/^[-•*]\s(.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]+<\/li>)/g,'<ul>$1</ul>').replace(/\n/g,'<br>');}
+function openSettings(){const s=document.getElementById('settModeTxt');if(s)s.textContent=cfg.mode==='onprem'?'On-Prem ('+cfg.url+')':'Direct (Anthropic API)';document.getElementById('settingsOv').classList.add('o');}
+function closeSettings(){document.getElementById('settingsOv').classList.remove('o');}
+function pref(k,v){prefs[k]=v;localStorage.setItem('pv3',JSON.stringify(prefs));}
+function loadPrefs(){
+  try{prefs={...prefs,...JSON.parse(localStorage.getItem('pv3')||'{}')};}catch(e){}
+  ['autoload','history','sender','md'].forEach((k,i)=>{const el=document.getElementById('tg'+i);if(el)el.checked=prefs[k];});
+}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,80)+'px';}
+</script>
+</body>
+</html>
